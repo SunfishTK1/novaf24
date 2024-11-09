@@ -17,6 +17,8 @@ from reportlab.lib.units import inch, cm
 from reportlab.pdfgen import canvas
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
+from io import BytesIO
+
 load_dotenv()
 
 LIKELIHOOD_OF_SCAM_RATINGS = {
@@ -109,9 +111,13 @@ class ConversationReport:
         - Dict[str, str]: Subtitle and details for the Likelihood of Scam.
         """
         numerical_rating = LIKELIHOOD_OF_SCAM_RATINGS.get(rating.lower(), 3)
+
+        display_numerical_rating = 6 - numerical_rating
+
+
         self.likelihood_of_scam = {
             "subtitle": "Likelihood of Scam",
-            "details": f"Rating: {rating.capitalize()} ({numerical_rating}/5)\nRationale: {rationale}"
+            "details": f"Rating: {rating.capitalize()} ({display_numerical_rating}/5)\nRationale: {rationale}"
         }
         self.number_rating_likelihood_of_scam = numerical_rating
         return self.likelihood_of_scam
@@ -328,7 +334,7 @@ class ConversationReport:
 
         doc.build(story)
 
-    def generate_full_report(self, output_file: str):
+    def generate_full_report(self, buffer: BytesIO):  #output_file: str
         # Retrieve the sample stylesheet
         styles = getSampleStyleSheet()
         
@@ -378,7 +384,7 @@ class ConversationReport:
         
         # Create the PDF document with a custom page template
         doc = SimpleDocTemplate(
-            output_file,
+            buffer,
             pagesize=letter,
             rightMargin=2 * cm,
             leftMargin=2 * cm,
@@ -433,22 +439,34 @@ class ConversationReport:
             # Handle Likelihood of Scam separately
             section_details = content.get("details", "") if isinstance(content, dict) else content
             if section_title == "Likelihood of Scam" and isinstance(content, dict):
-                # Create a colored dot for the rating
+                # Create a larger colored dot for the rating
                 dot_color = get_color(self.number_rating_likelihood_of_scam)
-                drawing = Drawing(10, 10)
-                drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
-        
-                # Create a table with the dot and the details
+                dot_diameter = 20  # Diameter of the dot in points
+                dot_radius = dot_diameter / 2
+                drawing_size = dot_diameter + 20  # Increased space for padding (dot_diameter + 20)
+                
+                drawing = Drawing(drawing_size, drawing_size)
+                drawing.add(
+                    Circle(
+                        drawing_size / 2,  # X-coordinate (centered)
+                        drawing_size / 2,  # Y-coordinate (centered)
+                        dot_radius,        # Radius of the circle
+                        fillColor=dot_color,
+                        strokeColor=dot_color
+                    )
+                )
+                
+                # Create a table with the larger dot and the details
                 table = Table(
-                    [[drawing, Paragraph(content.get("details", ""), styles['BodyText'])]],
-                    colWidths=[20, 450],
+                    [[drawing, Paragraph(section_details, styles['BodyText'])]],
+                    colWidths=[dot_diameter + 20, doc.width - (dot_diameter + 20)],  # Adjusted column widths
                     style=TableStyle([
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                        ('BACKGROUND', (0,0), (-1,-1), box_color),
-                        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#BDC3C7")),
-                        ('ROUNDING', (0,0), (-1,-1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 20),  # Increased right padding
+                        ('BACKGROUND', (0, 0), (-1, -1), box_color),
+                        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#BDC3C7")),
+                        ('ROUNDING', (0, 0), (-1, -1), 4),
                     ])
                 )
                 story.append(table)
@@ -497,6 +515,8 @@ class ConversationReport:
             onLaterPages=add_page_number
         )
 
+        #self.pdf = doc
+
 
 
     def generate_report(self):
@@ -504,7 +524,7 @@ class ConversationReport:
 
         pass
 
-    def analyze_transcript_with_gpt(self) -> None:
+    async def analyze_transcript_with_gpt(self) -> None:
         """
         Analyzes the transcript using GPT-4 and automatically populates all report sections
         using tool calling functionality.
@@ -817,10 +837,31 @@ if __name__ == "__main__":
         Scammer: [Breaking character slightly] Ma'am, if you hang up now, you'll be arrested within the hour! This is your final warning—
         [Call ends]
         '''
+    
+    g_text = """
+        [Phone rings]
+        [Call connects]
+        Bank Representative: Hello, this is Sarah Thompson from Chase Bank's fraud prevention department. May I please speak with Mr. James Wilson?
+        Customer: Yes, this is James speaking.
+        Bank Representative: Hello Mr. Wilson. Before we proceed, I'll need to verify your identity. Can you please confirm the last four digits of your account number? I won't need your full account information.
+        Customer: Sure, it ends in 7842.
+        Bank Representative: Thank you. Mr. Wilson, I'm calling because we've noticed an unusual purchase of $489.99 at Best Buy in Denver, Colorado, made about 20 minutes ago. We know you're based in Michigan, so we wanted to verify if this was a legitimate transaction.
+        Customer: No, I haven't made any purchases at Best Buy. I'm at home in Michigan right now.
+        Bank Representative: I understand. In this case, I'll go ahead and decline any further charges and cancel your current card. We'll issue you a new one right away. You won't be responsible for any fraudulent charges. Would you like me to send the new card to your address on file?
+        Customer: Yes, please. How long will it take to arrive?
+        Bank Representative: Your new card will arrive within 3-5 business days via USPS. In the meantime, you can continue to use your other Chase cards if you have any. You can also track your new card's delivery through your Chase mobile app.
+        Customer: What about the automatic payments linked to this card?
+        Bank Representative: Good question. Any recurring payments will automatically transfer to your new card once it's activated. However, I recommend checking your automatic payments list in your online banking portal just to be safe.
+        Customer: Thank you. Is there anything else I need to do?
+        Bank Representative: Just activate your new card when it arrives. And Mr. Wilson, remember that Chase will never ask for your full social security number, passwords, or PIN over the phone. If you notice any suspicious activity in the future, please call the number on the back of your card.
+        Customer: I appreciate your help. Thank you.
+        Bank Representative: You're welcome. Have a great rest of your day, Mr. Wilson. Goodbye.
+        [Call ends]
+        """
             
-    report = ConversationReport(transcript=t_text)
-    report.analyze_transcript_with_gpt()
-    report.generate_full_report("output.pdf")
+    #report = ConversationReport(transcript=g_text)
+    #report.analyze_transcript_with_gpt()
+    #report.generate_full_report("output.pdf")
     
     # Create an instance of ConversationReport
     #report = ConversationReport(sample_transcript, **sample_data)
