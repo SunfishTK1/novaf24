@@ -10,6 +10,8 @@ from datetime import datetime
 import sounddevice as sd
 import websockets
 
+api_key = os.environ.get("OPENAI_API_KEY")
+
 
 class SimpleRealtime:
     def __init__(self, event_loop=None, audio_buffer_cb=None, debug=False):
@@ -41,10 +43,10 @@ class SimpleRealtime:
             raise Exception("Already connected")
 
         headers = {
-            "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
+            "Authorization": f"Bearer {api_key}",
             "OpenAI-Beta": "realtime=v1"
         }
-        
+        #os.environ['OPENAI_API_KEY']
         self.ws = await websockets.connect(f"{self.url}?model={model}", extra_headers=headers)
         
         # Start the message handler in the same loop as the websocket
