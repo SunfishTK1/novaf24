@@ -1,0 +1,2 @@
+[2024-11-09T21:28:12.662Z] System: Server started and listening on port 5000
+[2024-11-09T21:32:53.491Z] System: Server is shutting down.
