@@ -357,25 +357,33 @@ class ConversationReport:
             story.append(Spacer(1, 12))
 
             if section_title == "Likelihood of Scam":
-                # Create a colored dot for the rating
-                dot_color = get_color(self.number_rating_likelihood_of_scam)
-                drawing = Drawing(10, 10)
-                drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
+                if isinstance(content, dict):
+                    # Create a colored dot for the rating
+                    dot_color = get_color(self.number_rating_likelihood_of_scam)
+                    drawing = Drawing(10, 10)
+                    drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
 
-                # Create a table with the dot and the details
-                table = Table([
-                    [drawing, Paragraph(content.get("details", ""), styles['BodyText'])]
-                ], colWidths=[20, 450])
+                    # Create a table with the dot and the details
+                    table = Table([
+                        [drawing, Paragraph(content.get("details", ""), styles['BodyText'])]
+                    ], colWidths=[20, 450])
 
-                table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ]))
-                story.append(table)
+                    table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ]))
+                    story.append(table)
+                else:
+                    # Fallback if content is not a dict
+                    story.append(Paragraph(content, styles['BodyText']))
             else:
-                # Add body text for other sections
-                story.append(Paragraph(content.get("details", ""), styles['BodyText']))
+                if isinstance(content, dict):
+                    # Add body text for other sections
+                    story.append(Paragraph(content.get("details", ""), styles['BodyText']))
+                else:
+                    # Fallback if content is not a dict
+                    story.append(Paragraph(content, styles['BodyText']))
             
             # Add a line divider between sections
             line = Line(0, 0, 500, 0)
