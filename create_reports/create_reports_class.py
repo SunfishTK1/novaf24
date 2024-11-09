@@ -8,10 +8,14 @@ from dotenv import load_dotenv
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.graphics.shapes import Drawing, Circle, Line
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
+)
+from reportlab.graphics.shapes import Drawing, Circle, Line, Rect
 from reportlab.lib import colors
 from reportlab.lib.units import inch, cm
+from reportlab.pdfgen import canvas
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 
 load_dotenv()
 
@@ -325,76 +329,174 @@ class ConversationReport:
         doc.build(story)
 
     def generate_full_report(self, output_file: str):
-        # Custom styles for headings and body
+        # Retrieve the sample stylesheet
         styles = getSampleStyleSheet()
-        styles.add(ParagraphStyle(name='SectionHeading', fontSize=16, spaceAfter=10, textColor=colors.HexColor("#2C3E50"), leading=20, fontName='Helvetica-Bold'))
-        styles.add(ParagraphStyle(name='SubHeading', fontSize=14, spaceAfter=8, textColor=colors.HexColor("#2980B9"), fontName='Helvetica-Bold'))
-        if 'BodyText' not in styles:
-            styles.add(ParagraphStyle(name='BodyText', fontSize=11, leading=14, textColor=colors.HexColor("#34495E")))
-
-        # Create the PDF document
-        doc = SimpleDocTemplate(output_file, pagesize=letter, rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm)
+        
+        # Modify the existing 'BodyText' style instead of adding a new one
+        styles['BodyText'].fontSize = 12
+        styles['BodyText'].leading = 16
+        styles['BodyText'].spaceAfter = 12
+        styles['BodyText'].textColor = colors.HexColor("#2C3E50")
+        styles['BodyText'].alignment = TA_JUSTIFY
+        styles['BodyText'].fontName = 'Helvetica'
+        
+        # Add new styles for other elements
+        styles.add(ParagraphStyle(
+            name='CoverTitle',
+            fontSize=36,
+            leading=42,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor("#2C3E50"),
+            spaceAfter=20,
+            fontName='Helvetica-Bold'
+        ))
+        styles.add(ParagraphStyle(
+            name='CoverSubtitle',
+            fontSize=18,
+            leading=22,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor("#34495E"),
+            spaceAfter=40,
+            fontName='Helvetica'
+        ))
+        styles.add(ParagraphStyle(
+            name='SectionHeading',
+            fontSize=20,
+            leading=24,
+            spaceAfter=10,
+            textColor=colors.HexColor("#2980B9"),
+            fontName='Helvetica-Bold'
+        ))
+        styles.add(ParagraphStyle(
+            name='Footer',
+            fontSize=10,
+            leading=12,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor("#95A5A6"),
+            fontName='Helvetica'
+        ))
+        
+        # Create the PDF document with a custom page template
+        doc = SimpleDocTemplate(
+            output_file,
+            pagesize=letter,
+            rightMargin=2 * cm,
+            leftMargin=2 * cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm
+        )
+        
+        # Story is the list of flowables
         story = []
-
-        sections = {
-            "Executive Summary": self.executive_summary,
-            "Introduction": self.introduction,
-            "Likelihood of Scam": self.likelihood_of_scam,
-            "Call Center Location Analysis": self.call_center_location_analysis,
-            "Impersonation Tactics": self.impersonation_tactics,
-            "Technology Utilization": self.technology_utilization,
-            "Scam Workflow Analysis": self.scam_workflow_analysis,
-            "Risk Assessment": self.risk_assessment,
-            "Mitigation Strategies": self.mitigation_strategies,
-            "Conclusion": self.conclusion,
-            "Appendices": self.appendices,
-            "Additional Considerations": self.additional_considerations
-        }
-
+        
+        # ======= Cover Page =======
+        def add_cover_page(story, styles):
+            # Add a large spacer to push content to the center
+            story.append(Spacer(1, 3 * inch))
+            
+            # Title
+            title = "Scam Call Analysis Report"
+            story.append(Paragraph(title, styles['CoverTitle']))
+            
+            # Subtitle
+            subtitle = "Comprehensive Analysis and Mitigation Strategies"
+            story.append(Paragraph(subtitle, styles['CoverSubtitle']))
+            
+            # Optional: Add a logo or image
+            # Uncomment and provide the path to your logo image
+            # try:
+            #     logo = Image("path_to_logo.png")
+            #     logo.drawHeight = 1 * inch
+            #     logo.drawWidth = 1 * inch
+            #     logo.hAlign = 'CENTER'
+            #     story.append(logo)
+            # except Exception as e:
+            #     print(f"Logo image not found: {e}")
+            
+            # Add page break after cover
+            story.append(PageBreak())
+        
+        add_cover_page(story, styles)
+        
+        # ======= Report Sections =======
+        sections = self.generate_report_data()
+        
         for section_title, content in sections.items():
-            # Add a section heading
+            # Add a section heading with decorative line
             story.append(Paragraph(section_title, styles['SectionHeading']))
-            story.append(Spacer(1, 12))
-
-            if section_title == "Likelihood of Scam":
-                if isinstance(content, dict):
-                    # Create a colored dot for the rating
-                    dot_color = get_color(self.number_rating_likelihood_of_scam)
-                    drawing = Drawing(10, 10)
-                    drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
-
-                    # Create a table with the dot and the details
-                    table = Table([
-                        [drawing, Paragraph(content.get("details", ""), styles['BodyText'])]
-                    ], colWidths=[20, 450])
-
-                    table.setStyle(TableStyle([
+            story.append(Spacer(1, 6))
+            
+            # Add a colored box around the section
+            box_color = colors.HexColor("#ECF0F1")  # Light grey-blue background
+            box_padding = 10
+            
+            # Handle Likelihood of Scam separately
+            section_details = content.get("details", "") if isinstance(content, dict) else content
+            if section_title == "Likelihood of Scam" and isinstance(content, dict):
+                # Create a colored dot for the rating
+                dot_color = get_color(self.number_rating_likelihood_of_scam)
+                drawing = Drawing(10, 10)
+                drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
+        
+                # Create a table with the dot and the details
+                table = Table(
+                    [[drawing, Paragraph(content.get("details", ""), styles['BodyText'])]],
+                    colWidths=[20, 450],
+                    style=TableStyle([
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ('LEFTPADDING', (0, 0), (-1, -1), 0),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                    ]))
-                    story.append(table)
-                else:
-                    # Fallback if content is not a dict
-                    story.append(Paragraph(content, styles['BodyText']))
+                        ('BACKGROUND', (0,0), (-1,-1), box_color),
+                        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#BDC3C7")),
+                        ('ROUNDING', (0,0), (-1,-1), 4),
+                    ])
+                )
+                story.append(table)
             else:
-                if isinstance(content, dict):
-                    # Add body text for other sections
-                    story.append(Paragraph(content.get("details", ""), styles['BodyText']))
-                else:
-                    # Fallback if content is not a dict
-                    story.append(Paragraph(content, styles['BodyText']))
+                # Wrap the section details in a colored box
+                box_table = Table(
+                    [[Paragraph(section_details, styles['BodyText'])]],
+                    colWidths=[doc.width],
+                    style=TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), box_color),
+                        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor("#BDC3C7")),
+                        ('ROUNDING', (0, 0), (-1, -1), 6),
+                        ('LEFTPADDING', (0, 0), (-1, -1), box_padding),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), box_padding),
+                        ('TOPPADDING', (0, 0), (-1, -1), box_padding),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), box_padding),
+                    ])
+                )
+                story.append(box_table)
             
-            # Add a line divider between sections
-            line = Line(0, 0, 500, 0)
-            line.strokeColor = colors.HexColor("#BDC3C7")
+            # Add some space after each section
+            story.append(Spacer(1, 12))
+            
+            # Optional: Add a decorative line or shape after each section
+            # Here, we add a simple line
+            line = Line(0, 0, doc.width, 0)
+            line.strokeColor = colors.HexColor("#95A5A6")
             line.strokeWidth = 1
-            story.append(Spacer(1, 6))
-            story.append(Drawing(500, 1, line))
+            drawing = Drawing(doc.width, 1)
+            drawing.add(line)
+            story.append(drawing)
             story.append(Spacer(1, 24))
+        
+        # ======= Footer and Page Numbers =======
+        def add_page_number(canvas_obj, doc):
+            page_num = canvas_obj.getPageNumber()
+            text = f"Page {page_num}"
+            canvas_obj.setFont('Helvetica', 10)
+            canvas_obj.setFillColor(colors.HexColor("#95A5A6"))
+            canvas_obj.drawCentredString(letter[0] / 2.0, 1 * cm, text)
+        
+        # ======= Build the PDF =======
+        doc.build(
+            story,
+            onFirstPage=add_page_number,
+            onLaterPages=add_page_number
+        )
 
-        # Build the document
-        doc.build(story)
 
 
     def generate_report(self):
