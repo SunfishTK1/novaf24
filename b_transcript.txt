@@ -1,0 +1,21 @@
+[Phone rings]
+[Call connects]
+Scammer: Hello, this is Michael Wilson from the Social Security Administration. I'm calling regarding suspicious activity on your social security number. Who am I speaking with?
+Victim: This is Margaret Johnson. What's wrong with my social security?
+Scammer: Ma'am, we've detected multiple suspicious transactions linked to your social security number in Texas. Several bank accounts were opened using your information, and there are connections to drug trafficking. Have you been to Texas recently?
+Victim: No, I haven't! Oh my goodness, I've never been to Texas. This must be a mistake!
+Scammer: Ma'am, please remain calm. I understand this is concerning. We can help resolve this, but I need to verify your identity first. Could you confirm your social security number for me?
+Victim: Well... I'm not sure if I should give that out over the phone...
+Scammer: Mrs. Johnson, I understand your concern, but this is a federal investigation. If we can't verify your identity, we'll have to freeze all your accounts immediately and issue an arrest warrant. We're trying to help you here.
+Victim: An arrest warrant? But I haven't done anything wrong! I... okay, my number is...
+Scammer: Yes, go ahead. This is a secure line.
+Victim: It's 483-...
+[Phone rings in background]
+Victim: Oh, that's my other line. My daughter's calling...
+Scammer: Ma'am, please don't hang up. This is a federal investigation. If you disconnect, we'll have to proceed with immediate legal action.
+Victim: I should probably check with my daughter first...
+Scammer: Mrs. Johnson, you cannot discuss this with anyone. This is a federal investigation under Section 411 of the SSA code. Any disclosure could result in immediate arrest.
+[Sound of other phone continuing to ring]
+Victim: I'm sorry, but something doesn't feel right about this. I'm going to call the Social Security office directly.
+Scammer: [Breaking character slightly] Ma'am, if you hang up now, you'll be arrested within the hour! This is your final warning—
+[Call ends]

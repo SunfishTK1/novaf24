@@ -747,6 +747,10 @@ class ConversationReport:
                 "content": "You are an expert at analyzing potential scam calls and creating detailed reports. Analyze the provided transcript and populate each section of the report using the available tools. Be thorough and professional in your analysis."
             },
             {
+                "role": "system",
+                "content": "You must analyze all of the following via the corresponding tool calls.  executive_summary, introduction, likelihood_of_scam, call_center_location_analysis, impersonation_tactics, technology_utilization, scam_workflow_analysis, risk_assessment, mitigation_strategies, conclusion, appendices, additional_considerations.  Call all of these functions everytime."
+            },
+            {
                 "role": "user",
                 "content": f"Please analyze this transcript and populate all sections of the report: {self.transcript}"
             }

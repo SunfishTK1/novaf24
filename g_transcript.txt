@@ -1,0 +1,18 @@
+[Phone rings]
+        [Call connects]
+        Bank Representative: Hello, this is Sarah Thompson from Chase Bank's fraud prevention department. May I please speak with Mr. James Wilson?
+        Customer: Yes, this is James speaking.
+        Bank Representative: Hello Mr. Wilson. Before we proceed, I'll need to verify your identity. Can you please confirm the last four digits of your account number? I won't need your full account information.
+        Customer: Sure, it ends in 7842.
+        Bank Representative: Thank you. Mr. Wilson, I'm calling because we've noticed an unusual purchase of $489.99 at Best Buy in Denver, Colorado, made about 20 minutes ago. We know you're based in Michigan, so we wanted to verify if this was a legitimate transaction.
+        Customer: No, I haven't made any purchases at Best Buy. I'm at home in Michigan right now.
+        Bank Representative: I understand. In this case, I'll go ahead and decline any further charges and cancel your current card. We'll issue you a new one right away. You won't be responsible for any fraudulent charges. Would you like me to send the new card to your address on file?
+        Customer: Yes, please. How long will it take to arrive?
+        Bank Representative: Your new card will arrive within 3-5 business days via USPS. In the meantime, you can continue to use your other Chase cards if you have any. You can also track your new card's delivery through your Chase mobile app.
+        Customer: What about the automatic payments linked to this card?
+        Bank Representative: Good question. Any recurring payments will automatically transfer to your new card once it's activated. However, I recommend checking your automatic payments list in your online banking portal just to be safe.
+        Customer: Thank you. Is there anything else I need to do?
+        Bank Representative: Just activate your new card when it arrives. And Mr. Wilson, remember that Chase will never ask for your full social security number, passwords, or PIN over the phone. If you notice any suspicious activity in the future, please call the number on the back of your card.
+        Customer: I appreciate your help. Thank you.
+        Bank Representative: You're welcome. Have a great rest of your day, Mr. Wilson. Goodbye.
+        [Call ends]
