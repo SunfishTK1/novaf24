@@ -7,10 +7,40 @@ import os
 from dotenv import load_dotenv
 
 from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.graphics.shapes import Drawing, Circle, Line
+from reportlab.lib import colors
+from reportlab.lib.units import inch, cm
 
 load_dotenv()
+
+LIKELIHOOD_OF_SCAM_RATINGS = {
+    'very high': 1,
+    'high': 2,
+    'medium': 3,
+    'low': 4,
+    'very low': 5
+}
+
+def get_color(numerical_rating: int) -> colors.Color:
+    """
+    Maps the numerical rating to a color from dark red to dark green.
+    
+    Parameters:
+    - numerical_rating (int): The numerical rating (1 to 5).
+    
+    Returns:
+    - colors.Color: The corresponding color.
+    """
+    color_map = {
+        1: colors.HexColor("#8B0000"),  # Dark Red
+        2: colors.HexColor("#B22222"),  # Firebrick
+        3: colors.HexColor("#FFA500"),  # Orange
+        4: colors.HexColor("#9ACD32"),  # YellowGreen
+        5: colors.HexColor("#006400")   # Dark Green
+    }
+    return color_map.get(numerical_rating, colors.HexColor("#808080"))  # Default Grey
 
 class ConversationReport:
     def __init__(self, transcript: str, *args, **kwargs):
@@ -29,6 +59,7 @@ class ConversationReport:
         self.conclusion = kwargs.get('conclusion', '')
         self.appendices = kwargs.get('appendices', '')
         self.additional_considerations = kwargs.get('additional_considerations', '')
+        self.number_rating_likelihood_of_scam = 0
 
     def set_executive_summary(self, paragraph: str) -> Dict[str, str]:
         """
@@ -61,7 +92,27 @@ class ConversationReport:
             "details": paragraph
         }
         return self.introduction
+    
+    def set_likelihood_of_scam(self, rating: str, rationale: str) -> Dict[str, str]:
+        """
+        Sets the Likelihood of Scam section.
 
+        Parameters:
+        - rating (str): The likelihood rating (e.g., "high", "medium").
+        - rationale (str): A one-sentence rationale for the rating.
+
+        Returns:
+        - Dict[str, str]: Subtitle and details for the Likelihood of Scam.
+        """
+        numerical_rating = LIKELIHOOD_OF_SCAM_RATINGS.get(rating.lower(), 3)
+        self.likelihood_of_scam = {
+            "subtitle": "Likelihood of Scam",
+            "details": f"Rating: {rating.capitalize()} ({numerical_rating}/5)\nRationale: {rationale}"
+        }
+        self.number_rating_likelihood_of_scam = numerical_rating
+        return self.likelihood_of_scam
+
+    '''
     def set_likelihood_of_scam(self, paragraph: str) -> Dict[str, str]:
         """
         Sets the Likelihood of Scam section.
@@ -77,6 +128,7 @@ class ConversationReport:
             "details": paragraph
         }
         return self.likelihood_of_scam
+    '''
 
     def set_call_center_location_analysis(self, paragraph: str) -> Dict[str, str]:
         """
@@ -244,7 +296,7 @@ class ConversationReport:
             "Additional Considerations": self.additional_considerations
         }
     
-    def generate_full_report(self, output_file: str):
+    def generate_full_boring_report(self, output_file: str):
         styles = getSampleStyleSheet()
         doc = SimpleDocTemplate(output_file, pagesize=letter)
         story = []
@@ -270,6 +322,70 @@ class ConversationReport:
             story.append(Paragraph(content.get("details", ""), styles['BodyText']))
             story.append(Spacer(1, 24))
 
+        doc.build(story)
+
+    def generate_full_report(self, output_file: str):
+        # Custom styles for headings and body
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='SectionHeading', fontSize=16, spaceAfter=10, textColor=colors.HexColor("#2C3E50"), leading=20, fontName='Helvetica-Bold'))
+        styles.add(ParagraphStyle(name='SubHeading', fontSize=14, spaceAfter=8, textColor=colors.HexColor("#2980B9"), fontName='Helvetica-Bold'))
+        if 'BodyText' not in styles:
+            styles.add(ParagraphStyle(name='BodyText', fontSize=11, leading=14, textColor=colors.HexColor("#34495E")))
+
+        # Create the PDF document
+        doc = SimpleDocTemplate(output_file, pagesize=letter, rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm)
+        story = []
+
+        sections = {
+            "Executive Summary": self.executive_summary,
+            "Introduction": self.introduction,
+            "Likelihood of Scam": self.likelihood_of_scam,
+            "Call Center Location Analysis": self.call_center_location_analysis,
+            "Impersonation Tactics": self.impersonation_tactics,
+            "Technology Utilization": self.technology_utilization,
+            "Scam Workflow Analysis": self.scam_workflow_analysis,
+            "Risk Assessment": self.risk_assessment,
+            "Mitigation Strategies": self.mitigation_strategies,
+            "Conclusion": self.conclusion,
+            "Appendices": self.appendices,
+            "Additional Considerations": self.additional_considerations
+        }
+
+        for section_title, content in sections.items():
+            # Add a section heading
+            story.append(Paragraph(section_title, styles['SectionHeading']))
+            story.append(Spacer(1, 12))
+
+            if section_title == "Likelihood of Scam":
+                # Create a colored dot for the rating
+                dot_color = get_color(self.number_rating_likelihood_of_scam)
+                drawing = Drawing(10, 10)
+                drawing.add(Circle(5, 5, 4, fillColor=dot_color, strokeColor=dot_color))
+
+                # Create a table with the dot and the details
+                table = Table([
+                    [drawing, Paragraph(content.get("details", ""), styles['BodyText'])]
+                ], colWidths=[20, 450])
+
+                table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ]))
+                story.append(table)
+            else:
+                # Add body text for other sections
+                story.append(Paragraph(content.get("details", ""), styles['BodyText']))
+            
+            # Add a line divider between sections
+            line = Line(0, 0, 500, 0)
+            line.strokeColor = colors.HexColor("#BDC3C7")
+            line.strokeWidth = 1
+            story.append(Spacer(1, 6))
+            story.append(Drawing(500, 1, line))
+            story.append(Spacer(1, 24))
+
+        # Build the document
         doc.build(story)
 
 
@@ -326,12 +442,17 @@ class ConversationReport:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "paragraph": {
+                            "rating": {
                                 "type": "string",
-                                "description": "Content for the Likelihood of Scam section"
+                                "enum": ["very high", "high", "medium", "low", "very low"],
+                                "description": "The likelihood rating of the scam."
+                            },
+                            "rationale": {
+                                "type": "string",
+                                "description": "A one-sentence rationale for the rating."
                             }
                         },
-                        "required": ["paragraph"]
+                        "required": ["rating", "rationale"]
                     }
                 }
             },
